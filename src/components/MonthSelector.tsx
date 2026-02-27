@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function MonthSelector() {
-  const { months, selectedMonthId, setSelectedMonthId, isAdmin, refreshMonths } = useMonth();
+  const { months, selectedMonthId, selectedMonth, setSelectedMonthId, isAdmin, refreshMonths } = useMonth();
   const [showNewMonthForm, setShowNewMonthForm] = useState(false);
   const [newMonthName, setNewMonthName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -41,6 +41,15 @@ export default function MonthSelector() {
     toast.success("تم بدء شهر جديد بنجاح");
   }
 
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-600">الشهر:</label>
+        <span className="text-sm font-medium">{selectedMonth?.name || "..."}</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <div className="flex items-center gap-2">
@@ -58,7 +67,7 @@ export default function MonthSelector() {
         </select>
       </div>
 
-      {isAdmin && !showNewMonthForm && (
+      {!showNewMonthForm && (
         <button
           onClick={() => setShowNewMonthForm(true)}
           className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-green-700 transition-colors"

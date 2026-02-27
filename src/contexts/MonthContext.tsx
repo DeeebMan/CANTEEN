@@ -8,7 +8,7 @@ interface MonthContextType {
   months: Month[];
   selectedMonthId: string | null;
   selectedMonth: Month | null;
-  setSelectedMonthId: (id: string) => void;
+  setSelectedMonthId: (id: string) => Promise<void>;
   isAdmin: boolean;
   refreshMonths: () => Promise<void>;
   loading: boolean;
@@ -18,7 +18,7 @@ const MonthContext = createContext<MonthContextType>({
   months: [],
   selectedMonthId: null,
   selectedMonth: null,
-  setSelectedMonthId: () => {},
+  setSelectedMonthId: async () => {},
   isAdmin: false,
   refreshMonths: async () => {},
   loading: true,
@@ -40,27 +40,37 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
         .order("created_at", { ascending: false });
 
       const { data: { user } } = await supabase.auth.getUser();
+      let isUserAdmin = false;
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .single();
-        setIsAdmin(profile?.role === "admin");
+        isUserAdmin = profile?.role === "admin";
       }
+      setIsAdmin(isUserAdmin);
 
       const allMonths = monthsData || [];
       setMonths(allMonths);
 
-      const stored = typeof window !== "undefined" ? localStorage.getItem("selectedMonthId") : null;
       const currentMonth = allMonths.find((m) => m.is_current);
 
-      if (stored && allMonths.some((m) => m.id === stored)) {
-        setSelectedMonthIdState(stored);
-      } else if (currentMonth) {
-        setSelectedMonthIdState(currentMonth.id);
-      } else if (allMonths.length > 0) {
-        setSelectedMonthIdState(allMonths[0].id);
+      if (isUserAdmin) {
+        const stored = typeof window !== "undefined" ? localStorage.getItem("selectedMonthId") : null;
+        if (stored && allMonths.some((m) => m.id === stored)) {
+          setSelectedMonthIdState(stored);
+        } else if (currentMonth) {
+          setSelectedMonthIdState(currentMonth.id);
+        } else if (allMonths.length > 0) {
+          setSelectedMonthIdState(allMonths[0].id);
+        }
+      } else {
+        if (currentMonth) {
+          setSelectedMonthIdState(currentMonth.id);
+        } else if (allMonths.length > 0) {
+          setSelectedMonthIdState(allMonths[0].id);
+        }
       }
 
       setLoading(false);
@@ -68,9 +78,15 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
     init();
   }, []);
 
-  function setSelectedMonthId(id: string) {
+  async function setSelectedMonthId(id: string) {
     setSelectedMonthIdState(id);
-    localStorage.setItem("selectedMonthId", id);
+    if (isAdmin) {
+      const supabase = createClient();
+      await supabase.from("months").update({ is_current: false }).eq("is_current", true);
+      await supabase.from("months").update({ is_current: true }).eq("id", id);
+      await refreshMonths();
+      localStorage.setItem("selectedMonthId", id);
+    }
   }
 
   async function refreshMonths() {
