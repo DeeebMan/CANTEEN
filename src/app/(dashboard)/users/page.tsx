@@ -16,6 +16,8 @@ export default function UsersPage() {
   const [role, setRole] = useState<"admin" | "accountant">("accountant");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   useEffect(() => {
     loadData();
@@ -80,6 +82,16 @@ export default function UsersPage() {
     const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
     if (error) { toast.error("حدث خطأ في تغيير الصلاحية"); return; }
     toast.success("تم تغيير الصلاحية بنجاح");
+    loadData();
+  }
+
+  async function handleNameSave(userId: string) {
+    if (!editingName.trim()) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("profiles").update({ name: editingName.trim() }).eq("id", userId);
+    if (error) { toast.error("حدث خطأ في تغيير الاسم"); return; }
+    toast.success("تم تغيير الاسم بنجاح");
+    setEditingUserId(null);
     loadData();
   }
 
@@ -208,7 +220,43 @@ export default function UsersPage() {
           <tbody className="divide-y divide-gray-200">
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-3 py-2 md:px-6 md:py-4 font-medium">{user.name}</td>
+                <td className="px-3 py-2 md:px-6 md:py-4 font-medium">
+                  {editingUserId === user.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleNameSave(user.id);
+                          if (e.key === "Escape") setEditingUserId(null);
+                        }}
+                      />
+                      <button
+                        onClick={() => handleNameSave(user.id)}
+                        className="text-green-600 hover:text-green-800 text-sm"
+                      >
+                        حفظ
+                      </button>
+                      <button
+                        onClick={() => setEditingUserId(null)}
+                        className="text-gray-400 hover:text-gray-600 text-sm"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  ) : (
+                    <span
+                      className="cursor-pointer hover:text-blue-600"
+                      onClick={() => { setEditingUserId(user.id); setEditingName(user.name); }}
+                      title="اضغط لتعديل الاسم"
+                    >
+                      {user.name}
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 md:px-6 md:py-4 text-gray-500" dir="ltr">
                   {user.email}
                 </td>
