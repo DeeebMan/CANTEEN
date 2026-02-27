@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { formatCurrency, formatDate, calculateItemTotals } from "@/lib/utils";
@@ -18,6 +18,14 @@ interface InvoiceData {
 }
 
 export default function PrintMultipleInvoicesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><p className="text-gray-500 text-lg">جاري التحميل...</p></div>}>
+      <PrintContent />
+    </Suspense>
+  );
+}
+
+function PrintContent() {
   const searchParams = useSearchParams();
   const ids = searchParams.get("ids")?.split(",").filter(Boolean) || [];
   const [invoicesData, setInvoicesData] = useState<InvoiceData[]>([]);
