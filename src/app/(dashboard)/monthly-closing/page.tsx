@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf";
+import { useMonth } from "@/contexts/MonthContext";
 
 function toAr(num: number | string): string {
   return String(num).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
@@ -18,6 +19,7 @@ interface InvoiceSummary {
 }
 
 export default function MonthlyClosingPage() {
+  const { selectedMonthId } = useMonth();
   const [invoiceSummaries, setInvoiceSummaries] = useState<InvoiceSummary[]>([]);
   const [goodsDelivered, setGoodsDelivered] = useState(0);
   const [carriedGoods, setCarriedGoods] = useState(0);
@@ -31,8 +33,8 @@ export default function MonthlyClosingPage() {
   const [calculated, setCalculated] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (selectedMonthId) loadData();
+  }, [selectedMonthId]);
 
   async function loadData() {
     const supabase = createClient();
@@ -40,10 +42,12 @@ export default function MonthlyClosingPage() {
     // الكفة الأولى: الفواتير بالتفصيل
     const { data: invoices } = await supabase
       .from("invoices")
-      .select("id, invoice_number, supplier_id");
+      .select("id, invoice_number, supplier_id")
+      .eq("month_id", selectedMonthId);
     const { data: suppliers } = await supabase
       .from("suppliers")
-      .select("id, name");
+      .select("id, name")
+      .eq("month_id", selectedMonthId);
     const { data: items } = await supabase
       .from("invoice_items")
       .select("invoice_id, quantity_per_carton, cartons_count, total_purchase_price, selling_price_per_piece");
@@ -79,7 +83,8 @@ export default function MonthlyClosingPage() {
     // بضاعة مرتحلة (الكمية × سعر البيع)
     const { data: carried } = await supabase
       .from("carried_goods")
-      .select("quantity, selling_price");
+      .select("quantity, selling_price")
+      .eq("month_id", selectedMonthId);
     setCarriedGoods(
       carried?.reduce((sum, g) => sum + Number(g.quantity) * Number(g.selling_price), 0) || 0
     );
@@ -87,7 +92,8 @@ export default function MonthlyClosingPage() {
     // نثريات
     const { data: exp } = await supabase
       .from("expenses")
-      .select("amount");
+      .select("amount")
+      .eq("month_id", selectedMonthId);
     setExpenses(exp?.reduce((sum, e) => sum + Number(e.amount), 0) || 0);
 
     setLoading(false);

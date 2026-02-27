@@ -6,11 +6,13 @@ import { createClient } from "@/lib/supabase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useMonth } from "@/contexts/MonthContext";
 import type { Supplier, InvoiceWithTotals } from "@/types/database";
 
 export default function SupplierInvoicesPage() {
   const params = useParams();
   const supplierId = params.id as string;
+  const { selectedMonthId } = useMonth();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [invoices, setInvoices] = useState<InvoiceWithTotals[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -21,8 +23,8 @@ export default function SupplierInvoicesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, [supplierId]);
+    if (selectedMonthId) loadData();
+  }, [supplierId, selectedMonthId]);
 
   async function loadData() {
     const supabase = createClient();
@@ -40,6 +42,7 @@ export default function SupplierInvoicesPage() {
       .from("invoices")
       .select("*")
       .eq("supplier_id", supplierId)
+      .eq("month_id", selectedMonthId)
       .order("date", { ascending: false });
 
     if (invoicesData) {
@@ -97,6 +100,7 @@ export default function SupplierInvoicesPage() {
         date,
         notes: invoiceNotes || null,
         created_by: user?.id,
+        month_id: selectedMonthId,
       });
       if (error) { toast.error("حدث خطأ في الإضافة"); return; }
       toast.success("تم إضافة الفاتورة بنجاح");

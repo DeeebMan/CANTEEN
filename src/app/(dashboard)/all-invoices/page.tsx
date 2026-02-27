@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase";
 import { formatCurrency, formatDate, calculateItemTotals } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMonth } from "@/contexts/MonthContext";
 import type { InvoiceWithTotals } from "@/types/database";
 
 export default function AllInvoicesPage() {
@@ -12,6 +13,7 @@ export default function AllInvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const { selectedMonthId } = useMonth();
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -36,8 +38,8 @@ export default function AllInvoicesPage() {
   }
 
   useEffect(() => {
-    loadInvoices();
-  }, []);
+    if (selectedMonthId) loadInvoices();
+  }, [selectedMonthId]);
 
   async function loadInvoices() {
     const supabase = createClient();
@@ -45,6 +47,7 @@ export default function AllInvoicesPage() {
     const { data: invoicesData } = await supabase
       .from("invoices")
       .select("*")
+      .eq("month_id", selectedMonthId)
       .order("date", { ascending: false });
 
     if (!invoicesData) {

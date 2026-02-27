@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useMonth } from "@/contexts/MonthContext";
 import type { CashSale } from "@/types/database";
 
 export default function CashSalesPage() {
+  const { selectedMonthId } = useMonth();
   const [items, setItems] = useState<CashSale[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -19,14 +21,15 @@ export default function CashSalesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (selectedMonthId) loadData();
+  }, [selectedMonthId]);
 
   async function loadData() {
     const supabase = createClient();
     const { data } = await supabase
       .from("cash_sales")
       .select("*")
+      .eq("month_id", selectedMonthId)
       .order("date", { ascending: false });
     setItems(data || []);
     setLoading(false);
@@ -50,7 +53,7 @@ export default function CashSalesPage() {
       if (error) { toast.error("حدث خطأ في التعديل"); return; }
       toast.success("تم التعديل بنجاح");
     } else {
-      const { error } = await supabase.from("cash_sales").insert(payload);
+      const { error } = await supabase.from("cash_sales").insert({ ...payload, month_id: selectedMonthId });
       if (error) { toast.error("حدث خطأ في الإضافة"); return; }
       toast.success("تم الإضافة بنجاح");
     }

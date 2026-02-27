@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useMonth } from "@/contexts/MonthContext";
 import type { CarriedGood } from "@/types/database";
 
 export default function CarriedGoodsPage() {
+  const { selectedMonthId } = useMonth();
   const [items, setItems] = useState<CarriedGood[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -18,14 +20,15 @@ export default function CarriedGoodsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (selectedMonthId) loadData();
+  }, [selectedMonthId]);
 
   async function loadData() {
     const supabase = createClient();
     const { data } = await supabase
       .from("carried_goods")
       .select("*")
+      .eq("month_id", selectedMonthId)
       .order("date", { ascending: false });
     setItems(data || []);
     setLoading(false);
@@ -41,6 +44,7 @@ export default function CarriedGoodsPage() {
       selling_price: parseFloat(sellingPrice),
       date,
       notes: notes || null,
+      month_id: selectedMonthId,
     };
 
     if (editingId) {

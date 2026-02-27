@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useMonth } from "@/contexts/MonthContext";
 import type { Expense } from "@/types/database";
 
 export default function ExpensesPage() {
+  const { selectedMonthId } = useMonth();
   const [items, setItems] = useState<Expense[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -17,14 +19,15 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (selectedMonthId) loadData();
+  }, [selectedMonthId]);
 
   async function loadData() {
     const supabase = createClient();
     const { data } = await supabase
       .from("expenses")
       .select("*")
+      .eq("month_id", selectedMonthId)
       .order("date", { ascending: false });
     setItems(data || []);
     setLoading(false);
@@ -39,6 +42,7 @@ export default function ExpensesPage() {
       amount: parseFloat(amount),
       date,
       notes: notes || null,
+      month_id: selectedMonthId,
     };
 
     if (editingId) {

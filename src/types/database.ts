@@ -1,5 +1,12 @@
 export type UserRole = "admin" | "accountant";
 
+export interface Month {
+  id: string;
+  name: string;
+  is_current: boolean;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -13,6 +20,7 @@ export interface Supplier {
   name: string;
   phone: string | null;
   notes: string | null;
+  month_id: string;
   created_at: string;
 }
 
@@ -23,6 +31,7 @@ export interface Invoice {
   date: string;
   notes: string | null;
   created_by: string;
+  month_id: string;
   created_at: string;
 }
 
@@ -43,6 +52,7 @@ export interface CarriedGood {
   selling_price: number;
   date: string;
   notes: string | null;
+  month_id: string;
   created_at: string;
 }
 
@@ -52,6 +62,7 @@ export interface Expense {
   amount: number;
   date: string;
   notes: string | null;
+  month_id: string;
   created_at: string;
 }
 
@@ -63,6 +74,7 @@ export interface CashSale {
   selling_price_per_piece: number;
   date: string;
   notes: string | null;
+  month_id: string;
   created_at: string;
 }
 

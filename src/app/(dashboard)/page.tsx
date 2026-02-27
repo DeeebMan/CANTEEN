@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import SummaryCard from "@/components/SummaryCard";
+import { useMonth } from "@/contexts/MonthContext";
 import type { DashboardStats } from "@/types/database";
 
 export default function DashboardPage() {
+  const { selectedMonthId } = useMonth();
   const [stats, setStats] = useState<DashboardStats>({
     total_due_to_suppliers: 0,
     total_profit: 0,
@@ -18,47 +20,61 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    if (selectedMonthId) loadStats();
+  }, [selectedMonthId]);
 
   async function loadStats() {
     const supabase = createClient();
 
-    // Get all invoice items for totals
-    const { data: items } = await supabase
-      .from("invoice_items")
-      .select("quantity_per_carton, cartons_count, total_purchase_price, selling_price_per_piece");
+    // Get invoices for this month first, then their items
+    const { data: invoices } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("month_id", selectedMonthId);
+
+    const invoiceIds = invoices?.map((i) => i.id) || [];
 
     let totalPurchase = 0;
     let totalProfit = 0;
-    if (items) {
-      for (const item of items) {
-        const totalQty = item.quantity_per_carton * item.cartons_count;
-        const purchase = item.total_purchase_price;
-        const selling = item.selling_price_per_piece * totalQty;
-        totalPurchase += purchase;
-        totalProfit += selling - purchase;
+
+    if (invoiceIds.length > 0) {
+      const { data: items } = await supabase
+        .from("invoice_items")
+        .select("quantity_per_carton, cartons_count, total_purchase_price, selling_price_per_piece")
+        .in("invoice_id", invoiceIds);
+
+      if (items) {
+        for (const item of items) {
+          const totalQty = item.quantity_per_carton * item.cartons_count;
+          const purchase = item.total_purchase_price;
+          const selling = item.selling_price_per_piece * totalQty;
+          totalPurchase += purchase;
+          totalProfit += selling - purchase;
+        }
       }
     }
 
-    // Get carried goods deduction (الكمية × سعر البيع)
+    // Get carried goods deduction
     const { data: carriedGoods } = await supabase
       .from("carried_goods")
-      .select("quantity, selling_price");
+      .select("quantity, selling_price")
+      .eq("month_id", selectedMonthId);
     const carriedDeduction =
       carriedGoods?.reduce((sum, g) => sum + Number(g.quantity) * Number(g.selling_price), 0) || 0;
 
     // Get expenses deduction
     const { data: expenses } = await supabase
       .from("expenses")
-      .select("amount");
+      .select("amount")
+      .eq("month_id", selectedMonthId);
     const expensesDeduction =
       expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
 
     // Get cash sales profit
     const { data: cashSales } = await supabase
       .from("cash_sales")
-      .select("quantity, purchase_price, selling_price_per_piece");
+      .select("quantity, purchase_price, selling_price_per_piece")
+      .eq("month_id", selectedMonthId);
     let cashSalesProfit = 0;
     if (cashSales) {
       for (const cs of cashSales) {
