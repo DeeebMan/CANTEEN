@@ -19,6 +19,7 @@ export default function CashSalesPage() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentUserName, setCurrentUserName] = useState("");
 
   useEffect(() => {
     if (selectedMonthId) loadData();
@@ -26,6 +27,12 @@ export default function CashSalesPage() {
 
   async function loadData() {
     const supabase = createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single();
+      if (profile) setCurrentUserName(profile.name);
+    }
     const { data } = await supabase
       .from("cash_sales")
       .select("*")
@@ -53,7 +60,7 @@ export default function CashSalesPage() {
       if (error) { toast.error("حدث خطأ في التعديل"); return; }
       toast.success("تم التعديل بنجاح");
     } else {
-      const { error } = await supabase.from("cash_sales").insert({ ...payload, month_id: selectedMonthId });
+      const { error } = await supabase.from("cash_sales").insert({ ...payload, month_id: selectedMonthId, added_by: currentUserName });
       if (error) { toast.error("حدث خطأ في الإضافة"); return; }
       toast.success("تم الإضافة بنجاح");
     }
@@ -240,6 +247,9 @@ export default function CashSalesPage() {
                   التاريخ
                 </th>
                 <th className="px-2 py-2 md:px-4 md:py-3 text-right text-sm font-medium text-gray-500">
+                  بواسطة
+                </th>
+                <th className="px-2 py-2 md:px-4 md:py-3 text-right text-sm font-medium text-gray-500">
                   إجراءات
                 </th>
               </tr>
@@ -268,6 +278,9 @@ export default function CashSalesPage() {
                     </td>
                     <td className="px-2 py-2 md:px-4 md:py-3 text-gray-500">
                       {formatDate(item.date)}
+                    </td>
+                    <td className="px-2 py-2 md:px-4 md:py-3 text-gray-500 text-sm">
+                      {item.added_by || "-"}
                     </td>
                     <td className="px-2 py-2 md:px-4 md:py-3">
                       <div className="flex flex-col md:flex-row gap-1 md:gap-2">
@@ -301,7 +314,7 @@ export default function CashSalesPage() {
                     {formatCurrency(totalProfit)} ج.م
                   </span>
                 </td>
-                <td colSpan={2}></td>
+                <td colSpan={3}></td>
               </tr>
             </tfoot>
           </table>

@@ -22,6 +22,7 @@ export default function InvoiceDetailPage() {
   const [totalPurchasePrice, setTotalPurchasePrice] = useState("");
   const [sellingPricePerPiece, setSellingPricePerPiece] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentUserName, setCurrentUserName] = useState("");
 
   useEffect(() => {
     loadData();
@@ -29,6 +30,12 @@ export default function InvoiceDetailPage() {
 
   async function loadData() {
     const supabase = createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single();
+      if (profile) setCurrentUserName(profile.name);
+    }
 
     const { data: invoiceData } = await supabase
       .from("invoices")
@@ -73,7 +80,7 @@ export default function InvoiceDetailPage() {
       if (error) { toast.error("حدث خطأ في التعديل"); return; }
       toast.success("تم تعديل الصنف بنجاح");
     } else {
-      const { error } = await supabase.from("invoice_items").insert(data);
+      const { error } = await supabase.from("invoice_items").insert({ ...data, added_by: currentUserName });
       if (error) { toast.error("حدث خطأ في الإضافة"); return; }
       toast.success("تم إضافة الصنف بنجاح");
     }
@@ -295,6 +302,9 @@ export default function InvoiceDetailPage() {
                   الربح
                 </th>
                 <th className="px-2 py-2 md:px-3 md:py-3 text-right text-sm font-medium text-gray-500">
+                  بواسطة
+                </th>
+                <th className="px-2 py-2 md:px-3 md:py-3 text-right text-sm font-medium text-gray-500">
                   إجراءات
                 </th>
               </tr>
@@ -331,6 +341,9 @@ export default function InvoiceDetailPage() {
                       >
                         {formatCurrency(profit)}
                       </span>
+                    </td>
+                    <td className="px-2 py-2 md:px-3 md:py-3 text-gray-500 text-sm">
+                      {item.added_by || "-"}
                     </td>
                     <td className="px-2 py-2 md:px-3 md:py-3">
                       <div className="flex flex-col md:flex-row gap-1 md:gap-2">
@@ -373,7 +386,7 @@ export default function InvoiceDetailPage() {
                     {formatCurrency(totals.profit)} ج.م
                   </span>
                 </td>
-                <td></td>
+                <td colSpan={2}></td>
               </tr>
             </tfoot>
           </table>

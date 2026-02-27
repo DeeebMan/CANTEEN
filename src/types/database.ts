@@ -43,6 +43,7 @@ export interface InvoiceItem {
   cartons_count: number;
   total_purchase_price: number;
   selling_price_per_piece: number;
+  added_by?: string | null;
 }
 
 export interface CarriedGood {
@@ -75,6 +76,7 @@ export interface CashSale {
   date: string;
   notes: string | null;
   month_id: string;
+  added_by?: string | null;
   created_at: string;
 }
 
