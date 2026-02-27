@@ -56,21 +56,10 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
 
       const currentMonth = allMonths.find((m) => m.is_current);
 
-      if (isUserAdmin) {
-        const stored = typeof window !== "undefined" ? localStorage.getItem("selectedMonthId") : null;
-        if (stored && allMonths.some((m) => m.id === stored)) {
-          setSelectedMonthIdState(stored);
-        } else if (currentMonth) {
-          setSelectedMonthIdState(currentMonth.id);
-        } else if (allMonths.length > 0) {
-          setSelectedMonthIdState(allMonths[0].id);
-        }
-      } else {
-        if (currentMonth) {
-          setSelectedMonthIdState(currentMonth.id);
-        } else if (allMonths.length > 0) {
-          setSelectedMonthIdState(allMonths[0].id);
-        }
+      if (currentMonth) {
+        setSelectedMonthIdState(currentMonth.id);
+      } else if (allMonths.length > 0) {
+        setSelectedMonthIdState(allMonths[0].id);
       }
 
       setLoading(false);
@@ -85,7 +74,6 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
       await supabase.from("months").update({ is_current: false }).eq("is_current", true);
       await supabase.from("months").update({ is_current: true }).eq("id", id);
       await refreshMonths();
-      localStorage.setItem("selectedMonthId", id);
     }
   }
 
