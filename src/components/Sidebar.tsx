@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navItems = [
   { href: "/", label: "الرئيسية", icon: "📊" },
@@ -21,6 +21,19 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single();
+        if (profile) setUserName(profile.name);
+      }
+    }
+    loadUser();
+  }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -56,6 +69,7 @@ export default function Sidebar() {
       >
         <div className="p-6 border-b border-slate-700 hidden md:block">
           <h1 className="text-xl font-bold">حساب الكانتين</h1>
+          {userName && <p className="text-slate-400 text-sm mt-1">أهلاً {userName}</p>}
         </div>
 
         <nav className="p-4 space-y-2">
