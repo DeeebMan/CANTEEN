@@ -29,6 +29,7 @@ export default function MonthlyClosingPage() {
   const [creditsNCOs, setCreditsNCOs] = useState("");
   const [creditsSoldiers, setCreditsSoldiers] = useState("");
   const [vouchersInput, setVouchersInput] = useState("");
+  const [cashProfit, setCashProfit] = useState(0);
   const [loading, setLoading] = useState(true);
   const [calculated, setCalculated] = useState(false);
 
@@ -77,8 +78,21 @@ export default function MonthlyClosingPage() {
         });
       }
     }
+    // ربح المبيعات النقدية
+    const { data: cashSales } = await supabase
+      .from("cash_sales")
+      .select("quantity, purchase_price, selling_price_per_piece")
+      .eq("month_id", selectedMonthId);
+    let cashSalesProfit = 0;
+    if (cashSales) {
+      for (const cs of cashSales) {
+        cashSalesProfit += cs.selling_price_per_piece * cs.quantity - cs.purchase_price;
+      }
+    }
+
     setInvoiceSummaries(summaries);
-    setGoodsDelivered(totalSelling);
+    setCashProfit(cashSalesProfit);
+    setGoodsDelivered(totalSelling + cashSalesProfit);
 
     // بضاعة مرتحلة (الكمية × سعر البيع)
     const { data: carried } = await supabase
@@ -278,7 +292,7 @@ export default function MonthlyClosingPage() {
                   </tbody>
                   <tfoot className="bg-blue-50 font-bold">
                     <tr>
-                      <td className="px-3 py-2" colSpan={2}>الإجمالي</td>
+                      <td className="px-3 py-2" colSpan={2}>إجمالي الفواتير</td>
                       <td className="px-3 py-2 text-blue-700">
                         {formatCurrency(invoiceSummaries.reduce((s, i) => s + i.total_purchase, 0))} ج.م
                       </td>
@@ -286,6 +300,12 @@ export default function MonthlyClosingPage() {
                         {formatCurrency(invoiceSummaries.reduce((s, i) => s + i.profit, 0))} ج.م
                       </td>
                     </tr>
+                    {cashProfit > 0 && (
+                    <tr className="bg-green-50">
+                      <td className="px-3 py-2" colSpan={3}>ربح المبيعات النقدية</td>
+                      <td className="px-3 py-2 text-green-600">{formatCurrency(cashProfit)} ج.م</td>
+                    </tr>
+                    )}
                     <tr className="bg-blue-100">
                       <td className="px-3 py-2" colSpan={2}>إجمالي بسعر البيع (القيمة + الربح)</td>
                       <td className="px-3 py-2 text-blue-800" colSpan={2}>
